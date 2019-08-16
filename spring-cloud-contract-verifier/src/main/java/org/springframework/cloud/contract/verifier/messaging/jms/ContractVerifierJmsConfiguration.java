@@ -22,6 +22,9 @@ import java.util.Map;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.ObjectMessage;
+import javax.jms.StreamMessage;
+import javax.jms.TextMessage;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -76,22 +79,46 @@ class ContractVerifierJmsHelper extends ContractVerifierMessaging<Message> {
 	}
 
 	@Override
-	protected ContractVerifierMessage convert(Message receive) {
-		Map<String, Object> headers = new HashMap<>();
+	protected ContractVerifierMessage convert(Message message) {
 		try {
-			Enumeration enumeration = receive.getPropertyNames();
-			while (enumeration.hasMoreElements()) {
-				Object element = enumeration.nextElement();
-				String asString = element.toString();
-				Object property = receive.getObjectProperty(asString);
-				headers.put(asString, property);
-			}
-			return new ContractVerifierMessage(receive.getBody(Object.class), headers);
+			Map<String, Object> headers = headers(message);
+			return new ContractVerifierMessage(getPayload(message), headers);
 		}
 		catch (JMSException ex) {
 			log.warn("An exception occurred while trying to convert the JMS message", ex);
 			throw new IllegalStateException(ex);
 		}
+	}
+
+	private Map<String, Object> headers(Message message) throws JMSException {
+		Map<String, Object> headers = new HashMap<>();
+		if (message == null) {
+			return headers;
+		}
+		Enumeration enumeration = message.getPropertyNames();
+		while (enumeration.hasMoreElements()) {
+			Object element = enumeration.nextElement();
+			String asString = element.toString();
+			Object property = message.getObjectProperty(asString);
+			headers.put(asString, property);
+		}
+		return headers;
+	}
+
+	private Object getPayload(Message message) throws JMSException {
+		if (message == null) {
+			return null;
+		}
+		else if (message instanceof TextMessage) {
+			return ((TextMessage) message).getText();
+		}
+		else if (message instanceof StreamMessage) {
+			return ((StreamMessage) message).readObject();
+		}
+		else if (message instanceof ObjectMessage) {
+			return ((ObjectMessage) message).getObject();
+		}
+		return message.getBody(Object.class);
 	}
 
 }

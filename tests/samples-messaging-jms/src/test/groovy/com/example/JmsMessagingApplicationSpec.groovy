@@ -17,6 +17,7 @@
 package com.example
 
 import javax.inject.Inject
+import javax.jms.JMSException
 import javax.jms.Message
 
 import com.jayway.jsonpath.DocumentContext
@@ -31,8 +32,12 @@ import org.springframework.boot.test.context.SpringBootContextLoader
 import org.springframework.cloud.contract.spec.Contract
 import org.springframework.cloud.contract.verifier.messaging.MessageVerifier
 import org.springframework.cloud.contract.verifier.messaging.boot.AutoConfigureMessageVerifier
+import org.springframework.cloud.contract.verifier.messaging.internal.ContractVerifierMessage
+import org.springframework.cloud.contract.verifier.messaging.internal.ContractVerifierMessaging
 import org.springframework.cloud.contract.verifier.messaging.internal.ContractVerifierObjectMapper
 import org.springframework.jms.core.JmsTemplate
+import org.springframework.jms.core.MessagePostProcessor
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.ContextConfiguration
 
 /**
@@ -48,10 +53,9 @@ class JmsMessagingApplicationSpec extends Specification {
 	JmsTemplate jmsTemplate
 	@Autowired
 	BookDeleter bookDeleter
-	@Inject
-	MessageVerifier<Message> contractVerifierMessaging
-
-	ContractVerifierObjectMapper contractVerifierObjectMapper = new ContractVerifierObjectMapper()
+	@Inject MessageVerifier<Message> messageVerifier
+	@Inject ContractVerifierMessaging contractVerifierMessaging
+	@Inject ContractVerifierObjectMapper contractVerifierObjectMapper
 
 	@BeforeClass
 	static void init() {
@@ -77,30 +81,30 @@ class JmsMessagingApplicationSpec extends Specification {
 		when:
 			bookReturnedTriggered()
 		then:
-			def response = contractVerifierMessaging.receive('output')
-			response.getStringProperty('BOOK-NAME') == 'foo'
+			ContractVerifierMessage response = contractVerifierMessaging.receive('output')
+			response.getHeader('BOOK-NAME') == 'foo'
 		and:
 			DocumentContext parsedJson = JsonPath.
-					parse(contractVerifierObjectMapper.writeValueAsString(response.getBody(Object.class)))
+					parse(contractVerifierObjectMapper.writeValueAsString(response.getPayload()))
 			JsonAssertion.assertThat(parsedJson).field('bookName').isEqualTo('foo')
 	}
 
+	@DirtiesContext
 	def "should generate tests triggered by a message"() {
 		given:
 			Contract.make {
 				label 'some_label'
 				input {
-					messageFrom('input')
+					messageFrom('input2')
 					messageBody([
 							bookName: 'foo'
 					])
 					messageHeaders {
 						header('sample', 'header')
-
 					}
 				}
 				outputMessage {
-					sentTo('output')
+					sentTo('output2')
 					body([
 							bookName: 'foo'
 					])
@@ -111,15 +115,15 @@ class JmsMessagingApplicationSpec extends Specification {
 			}
 			// generated test should look like this:
 		when:
-			contractVerifierMessaging.send(
+			messageVerifier.send(
 					contractVerifierObjectMapper.writeValueAsString([bookName: 'foo']),
-					[sample: 'header'], 'input')
+					[sample: 'header'], 'input2')
 		then:
-			def response = contractVerifierMessaging.receive('output')
-			response.getStringProperty('BOOK-NAME') == 'foo'
+			ContractVerifierMessage response = contractVerifierMessaging.receive('output2')
+			response.getHeader('BOOK-NAME') == 'foo'
 		and:
 			DocumentContext parsedJson = JsonPath.
-					parse(contractVerifierObjectMapper.writeValueAsString(response.getBody(Object.class)))
+					parse(contractVerifierObjectMapper.writeValueAsString(response.getPayload()))
 			JsonAssertion.assertThat(parsedJson).field('bookName').isEqualTo('foo')
 	}
 
@@ -140,7 +144,7 @@ class JmsMessagingApplicationSpec extends Specification {
 			}
 			// generated test should look like this:
 		when:
-			contractVerifierMessaging.
+			messageVerifier.
 					send(contractVerifierObjectMapper.writeValueAsString([bookName: 'foo']),
 							[sample: 'header'], 'delete')
 		then:
@@ -149,7 +153,13 @@ class JmsMessagingApplicationSpec extends Specification {
 	}
 
 	void bookReturnedTriggered() {
-		jmsTemplate.convertAndSend("start", '''{"bookName" : "foo" }''')
+		jmsTemplate.convertAndSend("output", '''{"bookName" : "foo" }''', new MessagePostProcessor() {
+			@Override
+			Message postProcessMessage(Message message) throws JMSException {
+				message.setStringProperty("BOOK-NAME", "foo")
+				return message
+			}
+		})
 	}
 
 	PollingConditions pollingConditions = new PollingConditions()

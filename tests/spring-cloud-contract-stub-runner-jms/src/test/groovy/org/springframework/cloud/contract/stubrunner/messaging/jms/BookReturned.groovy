@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.cloud.contract.stubrunner.messaging.camel
+package org.springframework.cloud.contract.stubrunner.messaging.jms
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import groovy.transform.CompileStatic

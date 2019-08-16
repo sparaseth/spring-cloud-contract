@@ -11,8 +11,8 @@
 	</parent>
 	<artifactId>spring-cloud-contract-stub-runner-jms</artifactId>
 	<packaging>jar</packaging>
-	<name>Spring Cloud Contract Stub Runner Camel</name>
-	<description>Spring Cloud Contract Stub Runner Camel</description>
+	<name>Spring Cloud Contract Stub Runner JMS</name>
+	<description>Spring Cloud Contract Stub Runner JMS</description>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
@@ -26,10 +26,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-activemq</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.activemq</groupId>
-			<artifactId>activemq-broker</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
@@ -53,16 +49,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.activemq</groupId>
-			<artifactId>activemq-camel</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.activemq</groupId>
-			<artifactId>activemq-pool</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

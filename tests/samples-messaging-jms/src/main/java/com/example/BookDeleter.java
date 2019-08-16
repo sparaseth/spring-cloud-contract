@@ -24,7 +24,7 @@ import javax.jms.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -34,21 +34,15 @@ public class BookDeleter {
 
 	private AtomicBoolean bookSuccessfulyDeleted = new AtomicBoolean(false);
 
-	private final JmsTemplate jmsTemplate;
-
-	public BookDeleter(JmsTemplate jmsTemplate) {
-		this.jmsTemplate = jmsTemplate;
-	}
-
 	/**
 	 * Scenario for "should generate tests triggered by a message": client side: if sends
 	 * a message to input.messageFrom then message will be sent to output.messageFrom
 	 * server side: will send a message to input, verify the message contents and await
 	 * upon receiving message on the output messageFrom
 	 */
-	public void bookDeleted() throws JMSException {
-		Message deleted = this.jmsTemplate.receive("bookDeleted");
-		log.info("Deleting book " + deleted);
+	@JmsListener(destination = "delete")
+	public void bookDeleted(Message message) throws JMSException {
+		log.info("Deleting book " + message);
 		this.bookSuccessfulyDeleted.set(true);
 		log.info("Book successfuly deleted [" + this.bookSuccessfulyDeleted + "]");
 	}

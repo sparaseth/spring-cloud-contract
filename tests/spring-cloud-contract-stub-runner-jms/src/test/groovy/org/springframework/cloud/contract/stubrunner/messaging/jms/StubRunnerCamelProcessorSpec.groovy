@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.springframework.cloud.contract.stubrunner.messaging.camel
+package org.springframework.cloud.contract.stubrunner.messaging.jms
 
 import org.apache.camel.CamelContext
 import org.apache.camel.Exchange
@@ -25,9 +25,6 @@ import spock.lang.Specification
 import org.springframework.cloud.contract.spec.Contract
 
 class StubRunnerCamelProcessorSpec extends Specification {
-
-	CamelContext camelContext = new SpringCamelContext()
-	Exchange message = ExchangeBuilder.anExchange(camelContext).build()
 
 	def noOutputMessageContract = Contract.make {
 		label 'return_book_2'

@@ -19,6 +19,7 @@ package com.example;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 
@@ -39,9 +40,10 @@ public class BookService {
 	 * side: will run the method and await upon receiving message on the output
 	 * messageFrom. Method triggers sending a message to a source
 	 */
+	@JmsListener(destination = "input2")
 	public void returnBook() {
-		BookReturned bookReturned = new BookReturned("book");
-		jmsTemplate.convertAndSend("returnBook", bookReturned, message -> {
+		BookReturned bookReturned = new BookReturned("foo");
+		jmsTemplate.convertAndSend("output2", "{\"bookName\":\"foo\"}", message -> {
 			message.setStringProperty("BOOK-NAME", bookReturned.bookName);
 			return message;
 		});
