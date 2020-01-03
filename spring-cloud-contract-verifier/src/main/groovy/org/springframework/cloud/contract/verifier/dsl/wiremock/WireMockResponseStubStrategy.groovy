@@ -95,6 +95,7 @@ class WireMockResponseStubStrategy extends BaseWireMockStubStrategy {
 	private void appendBody(ResponseDefinitionBuilder builder) {
 		if (response.body) {
 			Object body = MapConverter.getStubSideValues(response.body)
+			body = MapConverter.toParsingObject(body)
 			if (body instanceof byte[]) {
 				builder.withBody(body)
 			}

@@ -132,8 +132,13 @@ class WireMockRequestStubStrategy extends BaseWireMockStubStrategy {
 						convertToValuePattern(appendBodyRegexpMatchPattern(request.body, contentType)))
 			}
 			else {
+				if (originalBody instanceof FromFileProperty) {
+					FromFileProperty file = (FromFileProperty) originalBody
+					originalBody = file.isByte() ? file.asBytes() : file.asString()
+				}
 				def body = JsonToJsonPathsConverter.
 						removeMatchingJsonPaths(originalBody, request.bodyMatchers)
+				body = MapConverter.toParsingObject(body)
 				JsonPaths values = JsonToJsonPathsConverter.
 						transformToJsonPathWithStubsSideValuesAndNoArraySizeCheck(body)
 				if ((values.empty && !request.bodyMatchers?.hasMatchers())

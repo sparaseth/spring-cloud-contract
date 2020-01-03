@@ -39,8 +39,17 @@ class MapConverter {
 
 	public static final boolean STUB_SIDE = true
 	public static final boolean TEST_SIDE = false
-	public static final Closure JSON_PARSING_CLOSURE = { String value ->
-		new JsonSlurper().parseText(value)
+	public static final Closure JSON_PARSING_CLOSURE = { Object value ->
+		if (value instanceof String || value instanceof GString) {
+			return new JsonSlurper().parseText(value.toString())
+		}
+		return value
+	}
+	public static final Closure XML_PARSING_CLOSURE = { Object value ->
+		if (value instanceof String || value instanceof GString) {
+			return new XmlSlurper().parseText(value.toString())
+		}
+		return value
 	}
 	public static final Function<String, Object> JSON_PARSING_FUNCTION = { String value ->
 		new JsonSlurper().parseText(value)
@@ -54,6 +63,21 @@ class MapConverter {
 
 	private TemplateProcessor processor() {
 		return new HandlebarsTemplateProcessor()
+	}
+
+	static def toParsingObject(def object) {
+		if (!object) {
+			return object
+		}
+		if (object instanceof String || object instanceof GString) {
+			ContentType contentType = ContentUtils.getClientContentType(object as Object)
+			if (contentType == ContentType.JSON) {
+				return JSON_PARSING_CLOSURE.call(object)
+			} else if (contentType == ContentType.XML) {
+				return object
+			}
+		}
+		return object
 	}
 
 	/**
@@ -78,7 +102,7 @@ class MapConverter {
 	 * @return the transformed structure
 	 */
 	static def transformValues(def value, Closure closure,
-			Closure parsingClosure = JSON_PARSING_CLOSURE) {
+			Closure parsingClosure = Closure.IDENTITY) {
 		if (value instanceof String && value) {
 			try {
 				def parsed = parsingClosure(value)
@@ -137,7 +161,7 @@ class MapConverter {
 	 * provided object
 	 */
 	static Object getClientOrServerSideValues(json, boolean clientSide,
-			Closure parsingClosure = JSON_PARSING_CLOSURE) {
+			Closure parsingClosure = Closure.IDENTITY) {
 		return transformValues(json, {
 			if (it instanceof DslProperty) {
 				DslProperty dslProperty = ((DslProperty) it)
@@ -168,7 +192,7 @@ class MapConverter {
 		}, parsingClosure)
 	}
 
-	static Object getStubSideValues(json, Closure parsingClosure = JSON_PARSING_CLOSURE) {
+	static Object getStubSideValues(json, Closure parsingClosure = Closure.IDENTITY) {
 		return getClientOrServerSideValues(json, STUB_SIDE, parsingClosure)
 	}
 
@@ -176,7 +200,7 @@ class MapConverter {
 		return getClientOrServerSideValues(json, TEST_SIDE, { function.apply(it) })
 	}
 
-	static Object getTestSideValues(json, Closure parsingClosure = JSON_PARSING_CLOSURE) {
+	static Object getTestSideValues(json, Closure parsingClosure = Closure.IDENTITY) {
 		return getClientOrServerSideValues(json, TEST_SIDE, parsingClosure)
 	}
 

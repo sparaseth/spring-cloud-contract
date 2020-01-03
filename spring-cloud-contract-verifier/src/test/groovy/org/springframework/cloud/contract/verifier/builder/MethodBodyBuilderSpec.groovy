@@ -1927,4 +1927,55 @@ response:
 			}
 	}
 
+	@Issue("#1266")
+	def 'should not json in a json'() {
+		given:
+			Contract contractDsl = Contract.make {
+				name 'Valid token response should match given schema'
+				request {
+					method 'POST'
+					url '/VPPClientConfigSrv'
+					headers {
+						contentType(applicationJson())
+					}
+				}
+				response {
+					status OK()
+					body([
+							"clientContext"      : "{\"guid\":\"2880a01e-1177-4aee-b1dd-f361233a0e1c\",\"hostname\":\"test.com\"}"
+					])
+					headers {
+						contentType(applicationJson())
+					}
+				}
+			}
+			methodBuilder()
+		when:
+			String test = singleTestGenerator(contractDsl)
+		then:
+			SyntaxChecker.tryToCompileWithoutCompileStatic(methodBuilderName, test)
+		and:
+			test.contains('{\\"guid\\":\\"2880a01e-1177-4aee-b1dd-f361233a0e1c\\",\\"hostname\\":\\"test.com\\"}')
+		and:
+			stubMappingIsValidWireMockStub(contractDsl)
+		where:
+			methodBuilderName | methodBuilder
+			"spock"           | {
+				properties.testFramework = TestFramework.SPOCK
+			}
+			"mockmvc"         | {
+				properties.testMode = TestMode.MOCKMVC
+			}
+			"jaxrs-spock"     | {
+				properties.testFramework = TestFramework.SPOCK; properties.testMode = TestMode.JAXRSCLIENT
+			}
+			"jaxrs"           | {
+				properties.testFramework = TestFramework.JUNIT; properties.testMode = TestMode.JAXRSCLIENT
+			}
+			"testNG"          | {
+				properties.testFramework = TestFramework.TESTNG
+			}
+
+	}
+
 }

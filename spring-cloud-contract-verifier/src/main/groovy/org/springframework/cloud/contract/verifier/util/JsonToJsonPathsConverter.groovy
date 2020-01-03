@@ -320,29 +320,30 @@ class JsonToJsonPathsConverter {
 	}
 
 	JsonPaths transformToJsonPathWithTestsSideValues(def json,
-			Closure parsingClosure = MapConverter.JSON_PARSING_CLOSURE) {
+			Closure parsingClosure = Closure.IDENTITY) {
 		return transformToJsonPathWithValues(json, SERVER_SIDE, parsingClosure)
 	}
 
 	JsonPaths transformToJsonPathWithStubsSideValues(def json,
-			Closure parsingClosure = MapConverter.JSON_PARSING_CLOSURE) {
+			Closure parsingClosure = Closure.IDENTITY) {
 		return transformToJsonPathWithValues(json, CLIENT_SIDE, parsingClosure)
 	}
 
 	static JsonPaths transformToJsonPathWithStubsSideValuesAndNoArraySizeCheck(def json,
-			Closure parsingClosure = MapConverter.JSON_PARSING_CLOSURE) {
+			Closure parsingClosure = Closure.IDENTITY) {
 		return new JsonToJsonPathsConverter()
 				.transformToJsonPathWithValues(json, CLIENT_SIDE, parsingClosure)
 	}
 
 	private JsonPaths transformToJsonPathWithValues(def json, boolean clientSide,
-			Closure parsingClosure = MapConverter.JSON_PARSING_CLOSURE) {
+			Closure parsingClosure = Closure.IDENTITY) {
 		if (!json) {
 			return new JsonPaths()
 		}
 		JsonPaths pathsAndValues = [] as Set
 		Object convertedJson = MapConverter.
 				getClientOrServerSideValues(json, clientSide, parsingClosure)
+		convertedJson = MapConverter.JSON_PARSING_CLOSURE.call(convertedJson)
 		Object jsonWithPatterns = ContentUtils.
 				convertDslPropsToTemporaryRegexPatterns(convertedJson, parsingClosure)
 		MethodBufferingJsonVerifiable methodBufferingJsonPathVerifiable =
@@ -360,7 +361,7 @@ class JsonToJsonPathsConverter {
 	}
 
 	protected def traverseRecursively(Class parentType, MethodBufferingJsonVerifiable key, def value,
-			Closure closure, Closure parsingClosure = MapConverter.JSON_PARSING_CLOSURE) {
+			Closure closure, Closure parsingClosure = Closure.IDENTITY) {
 		value = ContentUtils.returnParsedObject(value)
 		if (value instanceof String && value) {
 			try {
@@ -583,7 +584,7 @@ class JsonToJsonPathsConverter {
 	}
 
 	private void traverseRecursivelyForKey(def json, MethodBufferingJsonVerifiable rootKey,
-			Closure closure, Closure parsingClosure = MapConverter.JSON_PARSING_CLOSURE) {
+			Closure closure, Closure parsingClosure = Closure.IDENTITY) {
 		traverseRecursively(Map, rootKey, json, closure, parsingClosure)
 	}
 

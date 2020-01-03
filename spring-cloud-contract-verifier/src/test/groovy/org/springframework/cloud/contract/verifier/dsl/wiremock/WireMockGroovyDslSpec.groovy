@@ -531,21 +531,18 @@ class WireMockGroovyDslSpec extends Specification implements WireMockStubVerifie
 
 	def 'should support xml as a response body'() {
 		given:
-			org.springframework.cloud.contract.spec.Contract groovyDsl = org.springframework.cloud.contract.spec.Contract.
-					make {
-						request {
-							method 'GET'
-							url "/users"
-						}
-						response {
-							status OK()
-							body """<user><name>${
-								value(consumer('Jozo'), producer('Denis'))
-							}</name><jobId>${
-								value(consumer("<test>"), producer('1234567890'))
-							}</jobId></user>"""
-						}
-					}
+			org.springframework.cloud.contract.spec.Contract groovyDsl = org.springframework.cloud.contract.spec.Contract.make {
+				request {
+					method 'GET'
+					url "/users"
+				}
+				response {
+					status OK()
+					body """<user><name>${value(consumer('Jozo'), producer('Denis'))}</name><jobId>${
+						value(consumer("<test/>"), producer('1234567890'))
+					}</jobId></user>"""
+				}
+			}
 		when:
 			String json = toWireMockClientJsonStub(groovyDsl)
 		then:
@@ -557,7 +554,7 @@ class WireMockGroovyDslSpec extends Specification implements WireMockStubVerifie
 							},
 							"response": {
 								"status": 200,
-								"body":"<user><name>Jozo</name><jobId>&lt;test&gt;</jobId></user>",
+								"body":"<user><name>Jozo</name><jobId>&lt;test/&gt;</jobId></user>",
 								"transformers" : [ "response-template", "foo-transformer" ]
 							}
 						}
@@ -2957,6 +2954,37 @@ class WireMockGroovyDslSpec extends Specification implements WireMockStubVerifie
 
 		then:
 			!wireMockStub.contains('''$.['operations'][*]''')
+			stubMappingIsValidWireMockStub(wireMockStub)
+	}
+
+	@Issue("#1266")
+	def "should not escape the json in a json"() {
+		given:
+			Contract contractDsl = Contract.make {
+				name 'Valid token response should match given schema'
+				request {
+					url "/foo"
+					method 'GET'
+				}
+				response {
+					status OK()
+					body([
+							// this must not be escaped
+							"clientContext"      : "{\"guid\":\"2880a01e-1177-4aee-b1dd-f361233a0e1c\",\"hostname\":\"test.com\"}"
+					])
+					headers {
+						contentType(applicationJson())
+					}
+				}
+			}
+		when:
+			String wireMockStub = new WireMockStubStrategy("Test",
+					new ContractMetadata(null, false, 0, null, contractDsl), contractDsl)
+					.toWireMockClientStub()
+
+		then:
+			// [":"{] means unescaped, [":{] means escaped
+			wireMockStub.contains('''\\"clientContext\\":\\"{''')
 			stubMappingIsValidWireMockStub(wireMockStub)
 	}
 

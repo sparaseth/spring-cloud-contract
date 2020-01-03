@@ -337,8 +337,9 @@ class ContractsToYaml {
 		if (!contract.response) {
 			return
 		}
+		def stubSideBody = MapConverter.getStubSideValues(contract.response?.body)
 		ContentType contentType = evaluateClientSideContentType(contract.response?.headers,
-				contract.response?.body)
+				stubSideBody)
 		yamlContract.response = new YamlContract.Response()
 		yamlContract.response.with { YamlContract.Response response ->
 			response.async = contract.response.async
@@ -359,7 +360,7 @@ class ContractsToYaml {
 				}
 			}
 			else {
-				response.body = MapConverter.getStubSideValues(contract.response?.body)
+				response.body = stubSideBody
 			}
 			contract.response?.bodyMatchers?.matchers()?.each { BodyMatcher matcher ->
 				response.matchers.body << new YamlContract.BodyTestMatcher(
